@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Trading Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+.logo{
+  display:flex;
+  align-items:center;
+}
+
+.logo img{
+  height:24px;   /* ukuran setara teks logo */
+  width:auto;
+  display:block;
+}
+
+  
+:root{
+  --bg:#f1f5f9;--card:#fff;--text:#111;
+  --border:#e5e7eb;--primary:#facc15;
+}
+body.dark{
+  --bg:#020617;--card:#0f172a;--text:#e5e7eb;
+  --border:#1e293b;--primary:#fde047;
+}
+*{box-sizing:border-box;font-family:Arial}
+body{margin:0;background:var(--bg);color:var(--text)}
+
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:15px 25px;background:var(--card);
+  border-bottom:1px solid var(--border)
+}
+.right{display:flex;align-items:center;gap:15px}
+nav a{margin-right:12px;text-decoration:none;color:var(--text)}
+.nav-program{
+  background:var(--primary);padding:8px 16px;
+  border-radius:20px;color:#000;font-weight:bold
+}
+
+.toggle{
+  width:46px;height:24px;background:#000;
+  border-radius:20px;cursor:pointer;position:relative
+}
+.toggle:after{
+  content:"";width:20px;height:20px;background:#fff;
+  border-radius:50%;position:absolute;top:2px;left:2px;transition:.3s
+}
+body.dark .toggle:after{left:24px}
+
+.container{padding:25px}
+
+.controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.controls input,.controls select,.controls button{
+  padding:10px;border:1px solid var(--border);
+  border-radius:6px;background:var(--card);color:var(--text)
+}
+.controls button{
+  background:var(--primary);border:none;font-weight:bold;cursor:pointer
+}
+.controls button:disabled{opacity:.5}
+
+.content{display:grid;grid-template-columns:2.2fr 1fr;gap:20px}
+
+.upload{
+  background:var(--card);border:1px dashed var(--border);
+  border-radius:8px;min-height:350px;
+  display:flex;align-items:center;justify-content:center
+}
+.upload img{max-width:100%}
+
+.side{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:15px
+}
+
+.signal{font-size:22px;font-weight:bold}
+.buy{color:#22c55e}.sell{color:#ef4444}
+.result p{margin:6px 0;font-size:14px}
+
+.note{
+  width:100%;height:90px;margin-top:10px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:8px;color:var(--text)
+}
+
+.history{
+  margin-top:25px;background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;padding:15px
+}
+.item{
+  display:flex;justify-content:space-between;
+  align-items:center;font-size:14px;margin:6px 0
+}
+.trash{cursor:pointer;font-size:18px}
+</style>
+</head>
+
+<body>
+
+
+<header>
+  <strong class="logo">
+  <img src="Langit_Desain.png" alt="Langit Desain">
+</strong>
+  <div class="right">
+    <nav>
+      <!-- <a href="#">Beranda</a>
+      <a href="#">Pasar</a> -->
+      <a href="#" class="nav-program">Program</a>
+    </nav>
+    <div class="toggle" id="themeToggle"></div>
+  </div>
+</header>
+
+<div class="container">
+
+<div class="controls">
+  <input type="file" id="imageInput" accept="image/*">
+  <select id="timeframe">
+    <option>M1</option>
+    <option>M5</option>
+    <option>M15</option>
+    <option>M30</option>
+    <option selected>H1</option>
+    <option>H4</option>
+    <option>D1</option>
+    <option>W1</option>
+  </select>
+  <button id="analyzeBtn" disabled>Analisa Sekarang</button>
+</div>
+
+<div class="content">
+  <div class="upload" id="preview">Hasil Foto Yang di Upload</div>
+  <div class="side">
+    <div id="signal" class="signal">Buy / Sell</div>
+    <div id="result" class="result"></div>
+    <textarea id="note" class="note"></textarea>
+  </div>
+</div>
+
+<div class="history">
+  <h3>History Trade</h3>
+  <div id="historyList"></div>
+</div>
+
+</div>
+
+<script>
+/* THEME */
+const body=document.body;
+if(localStorage.theme==="dark") body.classList.add("dark");
+themeToggle.onclick=()=>{
+  body.classList.toggle("dark");
+  localStorage.theme=body.classList.contains("dark")?"dark":"light";
+};
+
+/* ELEMENT */
+const imageInput=document.getElementById("imageInput");
+const preview=document.getElementById("preview");
+const analyzeBtn=document.getElementById("analyzeBtn");
+const timeframeEl=document.getElementById("timeframe");
+const signalEl=document.getElementById("signal");
+const resultEl=document.getElementById("result");
+const noteEl=document.getElementById("note");
+const historyList=document.getElementById("historyList");
+
+let analyzed=false;
+let baseData=null;
+
+/* IMAGE */
+imageInput.onchange=()=>{
+  const f=imageInput.files[0];
+  if(!f) return;
+  const img=document.createElement("img");
+  img.src=URL.createObjectURL(f);
+  preview.innerHTML="";
+  preview.appendChild(img);
+  analyzeBtn.disabled=false;
+  analyzed=false;
+};
+
+/* ANALYZE */
+analyzeBtn.onclick=()=>{
+  if(!analyzed){
+    const base=1980+Math.random()*40;
+    const buy=Math.random()>0.5;
+    baseData={base,buy};
+    analyzed=true;
+  }
+  render();
+  saveHistory();
+};
+
+/* TIMEFRAME CHANGE */
+timeframeEl.onchange=()=>{
+  if(analyzed) render();
+};
+
+/* RENDER */
+function render(){
+  const tf=timeframeEl.value;
+  const d=baseData;
+  const entry=d.base.toFixed(2);
+
+  const sl=(d.buy?d.base-5:d.base+5).toFixed(2);
+  const tp1=(d.buy?d.base+7:d.base-7).toFixed(2);
+  const tp2=(d.buy?d.base+14:d.base-14).toFixed(2);
+
+  signalEl.textContent=d.buy?"BUY":"SELL";
+  signalEl.className="signal "+(d.buy?"buy":"sell");
+
+  resultEl.innerHTML=`
+    <p>Timeframe: ${tf}</p>
+    <p>Entry: ${entry}</p>
+    <p>SL: ${sl}</p>
+    <p>TP1: ${tp1}</p>
+    <p>TP2: ${tp2}</p>
+    <br>
+    <p>Support: Area reaksi buyer sebelumnya</p>
+    <p>Resistance: Area tekanan seller sebelumnya</p>
+  `;
+
+  noteEl.value =
+`Sinyal ${d.buy?"BUY":"SELL"} mengikuti struktur harga pada timeframe ${tf}.
+Support berpotensi menjadi pijakan harga, sementara resistance menjadi area reaksi selanjutnya.`;
+}
+
+/* HISTORY */
+function saveHistory(){
+  const h=JSON.parse(localStorage.history||"[]");
+  h.unshift({
+    time:new Date().toLocaleString(),
+    signal:signalEl.textContent,
+    tf:timeframeEl.value
+  });
+  localStorage.history=JSON.stringify(h);
+  loadHistory();
+}
+
+function loadHistory(){
+  historyList.innerHTML="";
+  const h=JSON.parse(localStorage.history||"[]");
+  h.forEach((d,i)=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`${d.time} - ${d.signal} (${d.tf})
+    <span class="trash" onclick="removeHistory(${i})">🗑️</span>`;
+    historyList.appendChild(div);
+  });
+}
+
+function removeHistory(i){
+  const h=JSON.parse(localStorage.history);
+  h.splice(i,1);
+  localStorage.history=JSON.stringify(h);
+  loadHistory();
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
